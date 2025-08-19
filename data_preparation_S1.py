@@ -540,5 +540,6 @@ if __name__ == '__main__':
     if isinstance(out, cudf.DataFrame):
         out = out.to_pandas()
     out.to_csv(os.path.join(os.path.dirname(__file__), 'processed_features_scenario1p3n23f.csv'), index=False)
-    print('✅ Scenario 1 feature engineering complete. Output written to processed_features_scenario1p3n23f.csv')
+    print('Scenario 1 feature engineering complete. Output written to processed_features_scenario1p3n23f.csv')
     print(f"Done Everything in {time.time() - tstart:.2f} seconds")
+
