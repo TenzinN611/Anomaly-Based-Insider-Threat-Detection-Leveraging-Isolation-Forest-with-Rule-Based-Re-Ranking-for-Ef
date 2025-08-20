@@ -1,2 +1,2 @@
-# Insider-Threat-Detection-User-Behavior-Modeling-with-AI-ML-and-Deterministic-Rule-Based
-Insider Threat Detection User Behavior Modeling with AI/ML and Deterministic Rule-Based Alert Re-Ranking for Rapid Threat Triage
+# Insider Threat Detection using Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
+Insider Threat Detection using Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
