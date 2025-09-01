@@ -37,7 +37,7 @@ def load_data(uploaded_file):
     return df
 
 @st.cache_data
-def run_pipeline(df, train_frac, pct_threshold, w1, rule_weights, use_per_user_threshold):
+def run_pipeline(df, pct_threshold, w1, rule_weights, use_per_user_threshold):
     """
     Runs the entire data processing and modeling pipeline.
     This function is cached, so it only re-runs when a control parameter in the sidebar changes.
@@ -47,7 +47,7 @@ def run_pipeline(df, train_frac, pct_threshold, w1, rule_weights, use_per_user_t
         st.error("No per-user normalized feature columns found (expected names with '_user_z').")
         return None, None, None
 
-    train_df, test_df = per_user_time_split_train_test(df, train_frac=train_frac)
+    train_df, test_df = time_split_train_test(df)
     train_ben = train_df[train_df["is_malicious"] == 0].reset_index(drop=True)
     if train_ben.empty:
         st.error("No benign rows found in the training data split. Cannot train the model.")
@@ -56,7 +56,7 @@ def run_pipeline(df, train_frac, pct_threshold, w1, rule_weights, use_per_user_t
     X_train_if = train_ben[per_user_z_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
     X_test_if = test_df[per_user_z_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
 
-    clf = IsolationForest(n_estimators=200, contamination="auto", random_state=RANDOM_STATE, n_jobs=-1)
+    clf = IsolationForest(n_estimators=500, contamination="auto", max_features=0.5, random_state=RANDOM_STATE, n_jobs=-1)
     clf.fit(X_train_if)
 
     train_scores = -clf.decision_function(X_train_if)
@@ -94,21 +94,46 @@ def run_pipeline(df, train_frac, pct_threshold, w1, rule_weights, use_per_user_t
     return model_ranked_df, anomalies_all, total_tp
 
 # --- Helper Functions (No Caching Needed) ---
-def per_user_time_split_train_test(dfin, train_frac=0.5, min_rows=3):
-    """Splits data per user, respecting time."""
-    parts_train, parts_test = [], []
-    for _, g in dfin.groupby("user"):
-        g = g.sort_values("day")
-        n = len(g)
-        if n < min_rows:
-            parts_train.append(g)
-            continue
-        i1 = int(math.floor(train_frac * n))
-        i1 = max(1, min(i1, n - 1))
-        parts_train.append(g.iloc[:i1])
-        parts_test.append(g.iloc[i1:])
-    train_df = pd.concat(parts_train).reset_index(drop=True)
-    test_df = pd.concat(parts_test).reset_index(drop=True) if parts_test else pd.DataFrame(columns=dfin.columns)
+def time_split_train_test(df):
+    ID_COLS     = ['user','day']
+    df['day'] = pd.to_datetime(df['day'])
+    
+    # Find all unique years present in the data, sorted chronologically
+    available_years = sorted(df['day'].dt.year.unique())
+    split_year = None
+
+    # 💡 Automatically find a year that can be split
+    for year in available_years:
+        split_date = pd.Timestamp(f"{year}-06-30")
+        
+        # Check if there is data both before/on the split date AND after it
+        has_train_data = (df['day'] <= split_date).any()
+        has_test_data = (df['day'] > split_date).any()
+        
+        if has_train_data and has_test_data:
+            split_year = year
+            break # Use the first suitable year found
+
+    # If no such year is found, raise an error
+    if split_year is None:
+        raise ValueError("Could not find a year with data both before/on June 30 and after July 1.")
+
+    print(f"✅ Found suitable split year: {split_year}. Training up to {split_year}-06-30.")
+
+    # --- Perform the split ---
+    final_split_date = pd.Timestamp(f"{split_year}-06-30")
+    
+    # Training keys are from rows on or before the split date
+    train_mask = df['day'] <= final_split_date
+    keys_train = df.loc[train_mask, ID_COLS].copy().reset_index(drop=True)
+    
+    # Testing keys are from rows after the split date
+    test_mask = df['day'] > final_split_date
+    keys_test = df.loc[test_mask, ID_COLS].copy().reset_index(drop=True)
+
+    train_df   = df.merge(keys_train, on=ID_COLS, how='inner')
+    test_df    = df.merge(keys_test,  on=ID_COLS, how='inner')
+    
     return train_df, test_df
 
 def compute_rule_score_row(row, rule_weights):
@@ -174,16 +199,13 @@ st.markdown("##### Anomaly Detection with Isolation Forest & Rule-Based Rerankin
 
 # --- Sidebar Controls ---
 with st.sidebar:
-    st.header("⚙️ Pipeline Controls")
-    uploaded_file = st.file_uploader("Upload Per-User Features CSV", type=["csv"])
+    st.header("⚙️Controls")
+    uploaded_file = st.file_uploader("Upload Log", type=["csv"])
     st.markdown("---")
-    st.subheader("1. Data Split")
-    train_frac = st.slider("Train Fraction (Per-User)", 0.1, 0.9, 0.5, step=0.05, key="train_frac")
-    st.subheader("2. Anomaly Detection")
+    st.subheader("1. Anomaly Detection")
     pct_threshold = st.slider("Percentile Threshold", 90.0, 100.0, DEFAULT_PCT_THRESHOLD, step=0.1, key="pct")
     use_per_user_threshold = st.toggle("Use Per-User Threshold", value=True, help="If on, uses per-user thresholds. If off, uses a single global threshold.")
-    
-    st.subheader("3. Hybrid Reranking")
+    st.subheader("2. Hybrid Reranking")
     w1 = st.slider("Hybrid Weight (w1 for Anomaly Score)", 0.0, 1.0, DEFAULT_W1, step=0.05, key="w1")
     st.caption(f"Hybrid Score = **{w1:.2f}** * Anomaly + **{1-w1:.2f}** * Rule")
     with st.expander("Tune Rule Weights"):
@@ -211,7 +233,7 @@ rule_weights_dict = {
 }
 
 model_ranked_df, hybrid_ranked_df, total_tp = run_pipeline(
-    df_loaded, train_frac, pct_threshold, w1, rule_weights_dict, use_per_user_threshold
+    df_loaded, pct_threshold, w1, rule_weights_dict, use_per_user_threshold
 )
 if model_ranked_df is None: st.stop()
 
@@ -282,7 +304,6 @@ st.header("📋 Alert Triage Queue (Hybrid-Ranked)")
 if hybrid_ranked_df.empty:
     st.warning("No alerts generated by the model with the current settings.")
 else:
-    st.info("ℹ️ **Note:** The page will refresh when you change the number of alerts to display. The main data pipeline is cached, so the model is **not** being retrained, making this interaction fast.")
     
     # Control for number of alerts to display, without the user filter
     max_alerts = len(hybrid_ranked_df)
