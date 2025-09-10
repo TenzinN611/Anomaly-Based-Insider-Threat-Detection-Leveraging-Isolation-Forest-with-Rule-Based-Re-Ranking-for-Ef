@@ -1,12 +1,16 @@
 # Anomaly-Based Insider Threat Detection Leveraging Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
 Anomaly-Based Insider Threat Detection Leveraging Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
 
-<img width="1892" height="899" alt="image" src="https://github.com/user-attachments/assets/1d015d56-3889-46e2-ba9d-ca53670dce96" />
-
-<img width="1915" height="735" alt="image" src="https://github.com/user-attachments/assets/0e4fad8d-51c4-4b49-9cee-ce38aa5a016c" />
+<img width="1916" height="910" alt="image" src="https://github.com/user-attachments/assets/5fd10f75-b8fb-49f2-b157-5626250755e1" />
 
 
-<img width="1584" height="607" alt="image" src="https://github.com/user-attachments/assets/9aedbf6d-9d71-42ba-9162-1b7b33e51e78" />
+<img width="1918" height="908" alt="image" src="https://github.com/user-attachments/assets/6434a79a-972c-4ae4-8cc0-325313715fe3" />
 
-<img width="1884" height="828" alt="image" src="https://github.com/user-attachments/assets/ae64638f-c275-4c50-ad15-8c1a3ebd0697" />
+
+
+<img width="1518" height="442" alt="image" src="https://github.com/user-attachments/assets/37ead7eb-033c-468c-8cd1-785ad106647b" />
+
+
+<img width="1565" height="758" alt="image" src="https://github.com/user-attachments/assets/ec9901cc-5cf9-4cc8-aa0a-4d630ea713ac" />
+
 
