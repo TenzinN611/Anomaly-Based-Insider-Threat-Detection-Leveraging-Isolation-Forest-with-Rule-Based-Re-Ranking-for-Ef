@@ -1,5 +1,5 @@
-# Insider Threat Detection Leveraging Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
-Insider Threat Detection Leveraging Isolation Forest with Rule-Based Re-Ranking for Efficient Triage
+# Insider Threat Detection Using Unsupervised Machine Learning with RuleBased ReRanking
+Insider Threat Detection Using Unsupervised Machine Learning with RuleBased ReRanking
 
 <img width="1915" height="901" alt="image" src="https://github.com/user-attachments/assets/8304ed52-6bca-4627-98a9-6617391c977b" />
 
